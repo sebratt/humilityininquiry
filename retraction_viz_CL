@@ -1,0 +1,75 @@
+library(tidyverse)
+library(tidytable)
+
+retraction_watch <- read_csv("retraction_watch.csv")
+retraction_watch%>%
+  mutate(RetractionDate = gsub("\\s+0:00", "", RetractionDate),
+     	OriginalPaperDate = gsub("\\s+0:00", "", OriginalPaperDate),
+     	RetractionDate = as.Date(RetractionDate,"%m/%d/%Y"),
+     	OriginalPaperDate = as.Date(OriginalPaperDate,"%m/%d/%Y"),
+     	retract_yr = year(RetractionDate),
+     	original_yr = year(OriginalPaperDate))%>%
+  filter(retract_yr >= 2000)%>%
+  group_by(retract_yr)%>%
+  mutate(counts = n())%>%
+  ungroup()->rw_clean
+
+rw_clean%>%
+  mutate(fields = strsplit(Subject, ";"))%>%
+  unnest(fields)%>%
+  mutate(field_abbr = str_replace_all(fields, "(\\(.*?\\)) (.*)", "\\1"))%>%
+  group_by(retract_yr, field_abbr)%>%
+  mutate(yr_sub = n())%>%
+  ungroup()%>%
+  ggplot(aes(retract_yr, yr_sub))+
+  geom_line(linewidth = 4)+
+  geom_vline(xintercept = 2014, color = "#00798C", linewidth = 3)+
+  facet_wrap(~field_abbr)+
+  theme_minimal(base_size = 90)+
+  ggtitle("Retractions by year and subject category")+
+  ylab("total retractions")+
+  xlab("year")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+rw_clean%>%
+  mutate(fields = strsplit(Subject, ";"))%>%
+  unnest(fields)%>%
+  mutate(field_abbr = str_replace_all(fields, "(\\(.*?\\)) (.*)", "\\1"))%>%
+  filter(str_detect(field_abbr,"\\(B\\/T\\)"))%>%
+  group_by(retract_yr, fields)%>%
+  mutate(yr_sub = n())%>%
+  ungroup()%>%
+  mutate(fields = str_remove_all(fields, "\\(B\\/T\\)"),
+     	fields = str_remove_all(fields, "Business - "),
+     	fields = str_replace_all(fields, "([a-zA-Z]+) ([a-zA-Z]+)", "\\1\n\\2"))%>%
+  ggplot(aes(retract_yr, yr_sub))+
+  geom_line(linewidth = 4)+
+  geom_vline(xintercept = 2014, color = "#00798C", linewidth = 3)+
+  theme_minimal(base_size = 90)+
+  facet_wrap(~fields)+
+  ggtitle("Retractions by year for B/T category")+
+  ylab("total retractions")+
+  xlab("year")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+rw_clean%>%
+  mutate(fields = strsplit(Subject, ";"))%>%
+  unnest(fields)%>%
+  mutate(field_abbr = str_replace_all(fields, "(\\(.*?\\)) (.*)", "\\1"))%>%
+  filter(str_detect(field_abbr,"\\(PHY\\)"))%>%
+  group_by(retract_yr, fields)%>%
+  mutate(yr_sub = n())%>%
+  ungroup()%>%
+  mutate(fields = str_remove_all(fields, "\\(PHY\\)"),
+     	fields = str_replace_all(fields, "([a-zA-Z]+) ([a-zA-Z]+)", "\\1\n\\2"),
+     	fields = str_replace_all(fields, "([a-zA-Z]+)/([a-zA-Z]+)", "\\1\n\\2"),
+     	fields = str_remove_all(fields, "Engineering - "))%>%
+  ggplot(aes(retract_yr, yr_sub))+
+  geom_line(linewidth = 4)+
+  geom_vline(xintercept = 2014, color = "#00798C", linewidth = 3)+
+  theme_minimal(base_size = 90)+
+  facet_wrap(~fields)+
+  ggtitle("Retractions by year for PHY category")+
+  ylab("total retractions")+
+  xlab("year")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
