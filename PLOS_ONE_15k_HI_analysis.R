@@ -2,6 +2,7 @@
 # The data for the regression, but updated PLOS sample here.
 # 15,000 says yeaeun for this data. 
 # 8/6/2025
+# updated 9/26/2025 w Jina's sciscinet data
 # Sarah BRatt
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 library(readxl)
@@ -117,7 +118,7 @@ write.csv2(PLOS_ONE_work_ids, "PLOSONE_Work_IDS_v2.csv",row.names = FALSE)
 #   ✔ DONE! merge with retractions per year 
 #   ✔ DONE! UK binary
 #   ❗  gender composition of team 
-#   ❗  fields of paper
+#   ✔ DONE fields of paper (concepts from WOS/OpenAlex)
 #   ❗  fields of the author(department?)
 #
 # # # # # # # # # # # # # # # # # # # # # # 
@@ -241,7 +242,7 @@ rw_c <- rw_clean %>% count(`retract_yr`)
 colnames(df3)[1] <- "year"
 colnames(rw_c)[1] <-"year"
 df3 <- merge(df3, rw_c, by="year")
-colnames(df3)[7] <-"retract_count_yearly"
+colnames(df3)[7] <-"yearly_retraction_count"
 
 
 # # # # # # # # # # # # # # # # # # # #
@@ -275,4 +276,51 @@ df3 <- merge(df3, concepts_PLOS, by="work_id")
 #  summarise(concepts = str_c(country_code, collapse = ", "),
 #            author_id = str_c(author_id, collapse = ", "))
 
-write.csv2(df3,"df3.csv", sep=",", row.names = FALSE)
+write.csv2(df3,"df3.csv", row.names = FALSE)
+
+
+#sampl <- sample(x = df3, size = 10000, replace = TRUE)
+
+rm(concepts_PLOS,context,country_code_split, df,merge_group, merge2_group,more_than_100_words,plos_aws, yeaeun15k)
+gc()
+
+getwd()
+
+# # # # # # # # # # # DOIs and Jina's Pull of SciSciNet # # # # # # # # # # # # 
+# SciSciNet 
+# 9/26/2025
+# DOIs for the PLOS 15k papers 
+options(scipen = 999)
+library(dplyr)
+
+
+# Read PLOS DOI data to check if its the same length (rows=15348... these are unique DOIs, right?)
+PLOS_dois <- read.csv2("C:/Users/sebratt/Box/Humility in Inquiry 2023/Data Sharing (Plos)/plos_one_dois_15k.csv", sep=",",
+                       header=TRUE)
+dois_u <- unique(PLOS_dois$doi) #yes. 15k unique dois for both datasets
+dois_u <- unique(PLOS_SciSciNet$doi)  #yup. 
+
+# unique DOIs in SciSciNET yup (rows=15429)
+PLOS_SciSciNet <- read.csv2("C:/Users/sebratt/Box/Humility in Inquiry 2023/Data Sharing (Plos)/plos_one_sciscinet.csv", sep=",",
+                       header=TRUE)
+
+# convert appropos columns to numeric 
+colnames(PLOS_SciSciNet)
+PLOS_SciSciNet$year <- as.numeric(PLOS_SciSciNet$year) 
+summary(PLOS_SciSciNet)
+PLOS_SciSciNet$citation_count <- as.numeric((PLOS_SciSciNet$citation_count))
+PLOS_SciSciNet$reference_count <- as.numeric((PLOS_SciSciNet$reference_count))
+PLOS_SciSciNet$team_size <- as.numeric(PLOS_SciSciNet$team_size)
+PLOS_SciSciNet$c10 <- as.numeric(PLOS_SciSciNet$c10)
+PLOS_SciSciNet$institution_count <- as.numeric(PLOS_SciSciNet$institution_count)
+
+# convert to numeric and to character as appropriate for multiple cols
+PLOS_SciSciNet <- PLOS_SciSciNet %>%
+  mutate(across(c(c5,disruption,atyp_10pct_z,atyp_pairs,atyp_median_z), as.numeric)) 
+
+PLOS_SciSciNet <- PLOS_SciSciNet %>%
+  mutate(across(c(mag_paperid, doi, paperid), as.character)) 
+
+
+
+
